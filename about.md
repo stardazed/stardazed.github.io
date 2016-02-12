@@ -4,12 +4,18 @@ title: About
 permalink: /about/
 ---
 
-This is the base Jekyll theme. You can find out more info about customizing your Jekyll theme, as well as basic Jekyll usage documentation at [jekyllrb.com](http://jekyllrb.com/)
+Stardazed TX is a library to enable quick development of custom 3D games in the browser.
 
-You can find the source code for the Jekyll new theme at:
-{% include icon-github.html username="jglovier" %} /
-[jekyll-new](https://github.com/jglovier/jekyll-new)
+The project status is currently: In Development (Pre-Alpha)<br>
+Features and APIs are still very much in flux, but it is functional and usable for actual development (I'm using it for prototypes and Game Jams).
 
-You can find the source code for Jekyll at
-{% include icon-github.html username="jekyll" %} /
-[jekyll](https://github.com/jekyll/jekyll)
+### Goals
+
+_"A small but powerful alternative for tools like Unity for 3D browser games"_
+
+There is still quite a ways to go for this to become a reality, but I've already used the library succesfully for small projects.
+For the foreseeable future the library will require medium to high technical expertise to use.
+
+For more information have a look at [the repository](https://github.com/stardazed/stardazed-tx).
+
+Stardazed TX is &copy; 2015-2016 by Arthur Langereis ([@zenmumbler](https://twitter.com/zenmumbler))

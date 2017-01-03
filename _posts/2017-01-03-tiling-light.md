@@ -6,7 +6,7 @@ date:   2017-01-03 00:00:00 +0100
 
 Stardazed supports 3 types of lights: directional, point and spot lights. These are the basic types of
 lights supported by most, if not all game engines. Up to recently SD had a hard limit of 4 active lights
-at any time. The light information was stored in several uniform arrays.
+at any time. The light information was stored in a couple of uniform arrays.
 
 I limited the number to 4 initially as all lights were processed for every pixel in the fragment shader,
 whether they were likely to affect the pixel or not. SD currently only has a forward shader where you
@@ -14,9 +14,10 @@ process all lights every pixel (or vertex) in a normal render pass. In a deferre
 rendered separately and is usually limited to a section of the screen by enabling the scissor test and
 clipping rendering to the area of the screen affected by the light.
 
-Another issue it that there's a limit on the number of uniform vectors available for use during any one
+Another issue is that there's a limit on the number of uniform vectors available for use during any one
 draw call and especially on mobile that limit is quite low. The limit is quite easy to reach with a bunch
-of lights and other uniforms are competing for the same space as well.
+of lights and other uniforms competing for the same space.
+
 
 ### Tiled Shading
 
@@ -28,10 +29,11 @@ that the number of lights covering any area of the screen isn't too large.
 In typical scenarios, a level has many lights, but most of them only affect a small area of the map and,
 depending on the viewing angle, only a couple of lights will affect any given part of the screen, even
 with many lights in close proximity to each other. Tiled lighting exploits this by dividing the screen
-up into a grid of square areas and determining before the actual lighting passes which lights affect
-which parts of the grid. Inside the lighting code, a lookup is done in the precalculated grid based on
-the viewport pixel to get the list of lights that affect the current block. So even if many lights are
-active, the fragment shader will only process the ones that are likely to affect the pixel being drawn.
+up into a grid of square areas and determining before the actual lighting passes are run which lights affect
+which parts of the grid. Inside the lighting code, a lookup is done in the precalculated grid to get the
+list of lights that affect the current pixel. So even if many lights are active, the fragment shader
+will only process the ones that are likely to affect the pixel being processed.
+
 
 ### Implementation
 
@@ -44,22 +46,22 @@ here (image taken from the paper):
 
 ![Light data structures schematic](/assets/lightstruct.png)
 
-The Global Light List is a mostly static array containing the same information as the uniforms listed
-above. In SD, this list directly represents all of the lights in the scene. The Light Manager component
-operates directly on the data in this array.
+The Global Light List is a mostly static array containing the properties of the lights (position, type,
+colour, direction, shadowing, etc.) In SD, this list directly represents all of the lights in the scene.
+The Light Manager component operates directly on the data in this array.
 
 The Tile Light Index Lists is a packed list of variable length lists of indexes into the Global Light
 List. Each sublist contains the indexes of the lights present in a tile of the Light Grid. This data
-is updated every frame and will vary significantly as the camera moves through the scene. Each
+is updated every frame and will vary significantly as the camera moves through the scene.
 
-Finally, the Light Grid is a MxN grid of cells representing a low resolution view of the viewport.
+Finally, the Light Grid is a grid of cells representing a low resolution view of the viewport.
 Each cell in the grid represents a 32x32 square on the viewport. The paper by Olsson and Assarsson
-states that both 16x16 and 32x32 scaling factors worked out well. Since SD has to generate the grid
+states that both 16x16 and 32x32 tiles worked out well. Since SD has to generate the grid
 every frame in JS code, I opted for the 32x32 grid as it reduces the numbers of cells by a factor of 4.
-The size of the grid is fixed as long as the viewport stays the same size. 
+The size of the grid is locked to the viewport size % 32 so during normal operation, the size is fixed.
 
 In the Light component, these 3 structures are all stored in a single 640x512 4-component float texture.
-At startup, a large Float32Array is created on the client and is subdivided in 3 layers:
+At startup, a Float32Array is created on the client and is subdivided in 3 layers:
 
 The first 256 rows of the texture are assigned to the global light list. Each light entry takes up 5
 vec4s, which was the main reason to have a width of 640 texels, each row can store 128 lights exactly.
@@ -73,7 +75,7 @@ index, I place them together inside the texels, one index in each component. Thi
 Because WebGL 1 does not allow a vec4 to be indexed by a variable, I had to add a set of conditionals
 in the data lookup code as shown below. This is only done once for each light index access so it
 hopefully should not add too much of an additional load on the shader. WebGL 1 only allows for simple,
-mostly constant accesses and flow control. 
+mostly constant accesses into arrays and basic flow control. 
 
 {% highlight glsl %}
 float getLightIndex(float listIndex) {
@@ -90,7 +92,7 @@ float getLightIndex(float listIndex) {
 {% endhighlight %}
 
 The light grid is stored in the final 16 rows of the texture. Each cell taking up 2 components so each
-texel stores 2 cells. So again, I can store 640 * 2 * 16 = 20,480 cells. Each cell represents a 32x32
+texel stores 2 cells. So again, I can store 640 * 2 * 16 = 20,480 cells. Each cell represents a 32 x 32
 rect on the screen, so even a retina 5K fullscreen viewport (5120 x 2880) only needs 160 * 90 = 14,400
 cells. Given that most WebGL apps run (by necessity) in a small viewport (like 720p), this should
 suffice for a while.
@@ -101,6 +103,10 @@ fixed at 640 x 512, but I'm planning to add smaller versions as well for simpler
 little wasted memory as possible. By having the rows allocated for each structure be variable as well
 a very efficient lookup table can be created for scenes with a known number of lights.
 
+Since the table is calculated on the CPU and only a small part is changed every frame, the GPU texture
+data is updated by determining which rows in the 3 tables are affected and only sending those to the GPU.
+
+
 ### Building the Light Grid
 
 As noted above, every frame the light grid and tile light index lists have to be updated. Currently,
@@ -108,7 +114,7 @@ only point lights are projected, spot and directional lights are just added to e
 The point light loop conceptually works as follows:
 
 * for each point light
-    * calculate an (approximate) area on the viewport that the light can affect
+    * calculate an (approximate) area on the viewport that the light will affect
     * for each (partial) cell in the light grid covered by the area
         * add the light's index to the cell
 * flatten the tile indexes into one long array
@@ -130,6 +136,7 @@ And another from a debug birds eye view:
 
 I'm not satisfied yet with the rect calculation and there are some issues to work out, but this was
 good enough for my current LD entries so I moved on.
+
 
 ### Optimizing the Light / Grid Loop
 
@@ -189,8 +196,10 @@ function updateLightData() {
 }
 {% endhighlight %}
 
-Even though the second block has several nested loops, it is a series of linear traversals
-of the grid data and the relatively short span lists for each row.
+Even though the second block has several nested loops, it traverses the grid data linearly
+once and iterates over the relatively short span list each cell, and the span list is
+updated only once per row.
+
 
 ### Future Work
 
@@ -204,7 +213,7 @@ It worked out quite well for [my LD37 entry, Callisto][ld37], where I was able t
 30 point lights in a single room all calculated dynamically without any real trouble on most
 hardware.
 
-Oh right, light map baking. Need that too.
+Oh right, light maps. Need those too.
 
 
 [mozdefsha]: https://hacks.mozilla.org/2014/01/webgl-deferred-shading/

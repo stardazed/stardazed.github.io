@@ -9,7 +9,7 @@
 title: Stardazed
 email: arthur@stardazed.club
 description: > # this means to ignore newlines until "baseurl:"
-  Stardazed TX is an exciting, in-development web 3D game library
+  Stardazed is an exciting, in-development web 3D game library
   designed for efficiency, small footprint and easy prototyping.
 baseurl: "" # the subpath of your site, e.g. /blog
 url: "http://stardazed.club" # the base hostname & protocol for your site
@@ -21,5 +21,5 @@ markdown: kramdown
 kramdown:
   input: GFM
   hard_wrap: false
-gems:
+plugins:
    - jekyll-paginate

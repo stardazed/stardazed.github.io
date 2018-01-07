@@ -21,7 +21,8 @@ date:   ${date}
 
 `;
 
-fs.writeFile(filePath, header, (err) => {
+// use append to avoid overwriting blog files
+fs.appendFile(filePath, header, (err) => {
 	if (err) throw err;
 	spawn("open", [filePath]);
 });

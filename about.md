@@ -18,4 +18,4 @@ For the foreseeable future the library will require medium to high technical exp
 
 For more information have a look at [the repository](https://github.com/stardazed/stardazed).
 
-Stardazed TX is &copy; 2015-2018 by Arthur Langereis ([@zenmumbler](https://twitter.com/zenmumbler))
+Stardazed is &copy; 2015-2018 by Arthur Langereis ([@zenmumbler](https://twitter.com/zenmumbler))

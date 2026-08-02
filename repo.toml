@@ -1,0 +1,17 @@
+[repo]
+name = "mainrepo"
+url  = "https://stardazed.github.io/repo/"
+
+[metadata]
+origin        = "mainrepo"
+label         = "mainrepo"
+description   = "mainrepo apt source"
+suites        = ["stable", "beta", "staging"]
+component     = "main"
+architectures = ["iphoneos-arm64", "iphoneos-arm", "all"]
+
+[github]
+org_name = "stardazed"
+
+[hosting]
+tag_prefix = "pool-"
